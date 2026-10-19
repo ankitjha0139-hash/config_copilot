@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Configuration Copilot prototype for the Vertex Ops case (HashedIn by Deloitte PM case study). Synthetic data; all customers fictional.">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Configuration Copilot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: internal ops console. Left rail of stages (Sales > UAT > Production), working canvas on the right; state shown as chips and stripes. */
+:root{
+  --bg:#F4F6F8; --panel:#FFFFFF; --ink:#16212E; --muted:#5B6878; --line:#DCE2E8; --soft:#EEF2F5;
+  --accent:#0E6B6B; --accent-ink:#FFFFFF; --accent-soft:#E2F1EF;
+  --ok:#1F7A4D; --ok-soft:#E3F3EA; --warn:#A76A00; --warn-soft:#FBF0DA; --bad:#B3261E; --bad-soft:#FBE6E4; --info:#3B5BA9; --info-soft:#E7ECF8;
+  --rail:#1B2A41; --rail-ink:#D7DEE8; --rail-active:#2A3D5A;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F151D; --panel:#16202B; --ink:#E6ECF2; --muted:#9AA8B8; --line:#2A3746; --soft:#1C2834;
+  --accent:#3FB2A8; --accent-ink:#06201E; --accent-soft:#16332F;
+  --ok:#5CC48E; --ok-soft:#163223; --warn:#E3A73B; --warn-soft:#352812; --bad:#F07A70; --bad-soft:#3A1A18; --info:#8EA8F0; --info-soft:#1C2540;
+  --rail:#0B1118; --rail-ink:#B8C4D2; --rail-active:#1D2A3A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F151D; --panel:#16202B; --ink:#E6ECF2; --muted:#9AA8B8; --line:#2A3746; --soft:#1C2834;
+  --accent:#3FB2A8; --accent-ink:#06201E; --accent-soft:#16332F;
+  --ok:#5CC48E; --ok-soft:#163223; --warn:#E3A73B; --warn-soft:#352812; --bad:#F07A70; --bad-soft:#3A1A18; --info:#8EA8F0; --info-soft:#1C2540;
+  --rail:#0B1118; --rail-ink:#B8C4D2; --rail-active:#1D2A3A; color-scheme:dark}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.45}
+*{box-sizing:border-box}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100%}
+.rail{background:var(--rail);color:var(--rail-ink);padding:20px 12px;display:flex;flex-direction:column;gap:18px;padding-left:max(12px, env(safe-area-inset-left,0px))}
+.brand{padding:0 8px}
+.brand b{font-family:var(--display);font-size:19px;color:#fff;display:block;letter-spacing:.2px}
+.brand span{font-size:11px;opacity:.75;text-transform:uppercase;letter-spacing:.08em}
+.navgroup{display:flex;flex-direction:column;gap:2px}
+.navgroup h4{margin:0 8px 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:.1em;opacity:.6;font-weight:600}
+.nav{all:unset;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;font-size:13.5px;color:var(--rail-ink)}
+.nav:hover{background:var(--rail-active)}
+.nav[aria-current="page"]{background:var(--rail-active);color:#fff;box-shadow:inset 3px 0 0 var(--accent)}
+.nav:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.tag{font-size:10px;font-weight:600;padding:1px 6px;border-radius:999px;background:rgba(255,255,255,.12);letter-spacing:.04em}
+.legend{margin-top:auto;padding:10px 8px;border-top:1px solid rgba(255,255,255,.12);font-size:11.5px;display:grid;gap:6px}
+.legend div{display:flex;gap:8px;align-items:center}
+main{padding-block:22px 40px;padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));min-width:0}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.head{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:flex-end}
+.head h1{font-family:var(--display);font-size:24px;margin:0;text-wrap:balance}
+.head p{margin:2px 0 0;color:var(--muted);max-width:70ch}
+.eyebrow{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent);font-weight:600}
+select,button,textarea{font:inherit}
+select{padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)}
+.btn{cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-width:0}
+.panel>.ph{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line)}
+.panel>.ph h2{font-size:14px;margin:0;font-weight:600}
+.panel>.pb{padding:12px 14px}
+.grid2{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:999px;white-space:nowrap}
+.c-ok{background:var(--ok-soft);color:var(--ok)} .c-warn{background:var(--warn-soft);color:var(--warn)} .c-bad{background:var(--bad-soft);color:var(--bad)}
+.c-info{background:var(--info-soft);color:var(--info)} .c-acc{background:var(--accent-soft);color:var(--accent)} .c-mut{background:var(--soft);color:var(--muted)}
+.layer{font-family:var(--mono);font-size:10.5px;font-weight:500;padding:1px 6px;border-radius:4px;border:1px solid currentColor;opacity:.9}
+.L-R{color:var(--info)} .L-J{color:var(--warn)} .L-L{color:var(--accent)} .L-H{color:var(--ok)}
+.rail .L-R,.rail .L-J,.rail .L-L,.rail .L-H{filter:brightness(1.5)}
+.mono{font-family:var(--mono);font-size:12.5px}
+.muted{color:var(--muted)}
+.kpis{display:flex;flex-wrap:wrap;gap:8px}
+.banner{display:flex;gap:10px;align-items:flex-start;padding:10px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel)}
+.banner.bad{border-color:var(--bad);background:var(--bad-soft)} .banner.ok{border-color:var(--ok);background:var(--ok-soft)} .banner.info{border-color:var(--info);background:var(--info-soft)}
+.notes{display:flex;flex-direction:column;gap:8px}
+.note{padding:8px 10px;border-left:3px solid var(--line);background:var(--soft);border-radius:0 6px 6px 0;font-size:13.5px}
+.note.amb{border-left-color:var(--warn)} .note.clear{border-left-color:var(--ok)} .note.oos{border-left-color:var(--muted)}
+.note .meta{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap}
+.req{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px;background:var(--panel)}
+.req .top{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.req .q{background:var(--soft);border-radius:6px;padding:8px 10px}
+.req .q label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;display:block;margin-bottom:2px}
+.req textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:6px;padding:6px 8px;background:var(--panel);color:var(--ink)}
+.req .acts{display:flex;gap:8px;flex-wrap:wrap}
+.req .ans{border-left:3px solid var(--accent);padding:4px 10px}
+.list{display:flex;flex-direction:column;gap:10px}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.scroll{overflow-x:auto}
+.metrics{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.metric{all:unset;box-sizing:border-box;cursor:default;border:1px solid var(--line);border-radius:8px;padding:9px 10px;background:var(--panel);display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden}
+.metric::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:var(--ok)}
+.metric.fail::before{background:var(--bad)} .metric.wait::before{background:var(--warn)} .metric.fixed::before{background:var(--accent)}
+.metric.click{cursor:pointer} .metric.click:hover{border-color:var(--accent)} .metric[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.metric .id{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.metric .nm{font-size:12.5px;font-weight:600;line-height:1.25}
+.pipe{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px}
+.step{border:1px solid var(--line);border-radius:6px;padding:7px 8px;font-size:12px;background:var(--soft);display:flex;flex-direction:column;gap:3px}
+.step b{font-size:12px}
+.step .layer,.metric .chip{align-self:flex-start}
+.btn.primary .layer{color:var(--accent-ink);border-color:currentColor;opacity:.85}
+.kv{display:grid;grid-template-columns:150px minmax(0,1fr);gap:6px 12px;font-size:13.5px}
+.kv dt{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px}
+.kv dd{margin:0}
+.box{border:1px solid var(--line);border-radius:8px;padding:12px;display:flex;flex-direction:column;gap:8px}
+.box.prop{border-color:var(--accent);background:var(--accent-soft)} .box.ask{border-color:var(--warn);background:var(--warn-soft)} .box.none{border-color:var(--info);background:var(--info-soft)}
+.box h3{margin:0;font-size:13.5px}
+.guard{font-size:12.5px;color:var(--bad);display:flex;gap:6px;align-items:baseline}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}
+.dcard{display:flex;flex-direction:column;gap:8px}
+.spark{width:100%;height:70px;display:block}
+.log{display:flex;flex-direction:column}
+.log .row{display:grid;grid-template-columns:120px 120px 46px minmax(0,1fr);gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;align-items:baseline}
+.empty{padding:20px;text-align:center;color:var(--muted)}
+.pill-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.small{font-size:12px}
+.prog{height:6px;background:var(--soft);border-radius:999px;overflow:hidden;min-width:120px}
+.prog i{display:block;height:100%;background:var(--accent)}
+.pack td:first-child{width:42%}
+@media (max-width: 900px){
+  .app{grid-template-columns:1fr}
+  .rail{flex-direction:row;overflow-x:auto;padding:10px max(12px, env(safe-area-inset-right,0px)) 10px max(12px, env(safe-area-inset-left,0px));gap:12px;align-items:center}
+  .navgroup{flex-direction:row;gap:4px}.navgroup h4{display:none}.legend{display:none}.brand span{display:none}
+  .nav{white-space:nowrap}
+  .grid2{grid-template-columns:1fr}
+  .pipe{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kv{grid-template-columns:1fr}
+  .log .row{grid-template-columns:1fr;gap:2px}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Copilot sections">
+    <div class="brand"><b>Configuration Copilot</b><span>Vertex Ops · internal</span></div>
+    <div class="navgroup"><h4>Sales · MVP</h4>
+      <button class="nav" data-view="clar">Requirement clarification <span class="tag" id="n-clar"></span></button>
+      <button class="nav" data-view="checks">Configuration checks <span class="tag" id="n-checks"></span></button>
+    </div>
+    <div class="navgroup"><h4>UAT · MVP</h4>
+      <button class="nav" data-view="uat">Diagnosis &amp; tuning <span class="tag" id="n-uat"></span></button>
+    </div>
+    <div class="navgroup"><h4>Production</h4>
+      <button class="nav" data-view="safety">Safety net · MVP <span class="tag" id="n-safety"></span></button>
+      <button class="nav" data-view="drift">Fit monitoring · V2</button>
+    </div>
+    <div class="navgroup"><h4>Governance</h4>
+      <button class="nav" data-view="audit">Audit trail <span class="tag" id="n-audit"></span></button>
+    </div>
+    <div class="legend" aria-label="Layer legend">
+      <div><span class="layer L-R">R</span> Rules / automation</div>
+      <div><span class="layer L-J">J*</span> Fast decision layer (shadow)</div>
+      <div><span class="layer L-L">L</span> LLM agent</div>
+      <div><span class="layer L-H">H</span> Human decision</div>
+      <div class="small" style="opacity:.7">Synthetic data from the golden data set. All customers are fictional.</div>
+    </div>
+  </nav>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+
+<script>
+const D = {"customers":[{"id":"C01","name":"Aravali Agro Distributors","segment":"Distributor","city":"Jaipur","normal":900,"peak":2.2,"peaks":"Rabi & Kharif sowing seasons","wh":3,"source":"ERP","carriers":"2 courier + 1 freight","stage":"Sales","live":""},{"id":"C02","name":"Kesar Naturals","segment":"D2C brand","city":"Pune","normal":1500,"peak":3.0,"peaks":"Diwali, year-end sale","wh":2,"source":"Web store","carriers":"2 courier + 1 freight","stage":"Sales","live":""},{"id":"C03","name":"Konark Auto Spares","segment":"Distributor","city":"Bhubaneswar","normal":1200,"peak":2.9,"peaks":"Diwali","wh":2,"source":"ERP","carriers":"2 courier + 1 freight","stage":"Sales","live":""},{"id":"C04","name":"Meghdoot 3PL Services","segment":"3PL","city":"Nagpur","normal":4000,"peak":2.5,"peaks":"Diwali, month-end","wh":4,"source":"4 client systems","carriers":"3 courier + 1 freight","stage":"Sales","live":""},{"id":"C05","name":"Tanvi Fashion House","segment":"D2C brand","city":"Surat","normal":2200,"peak":3.5,"peaks":"Diwali, wedding season, EOSS","wh":1,"source":"Web store","carriers":"2 courier","stage":"Sales","live":""},{"id":"C06","name":"Sahyadri FMCG Distributors","segment":"Distributor","city":"Nashik","normal":2600,"peak":1.8,"peaks":"Month-end, Diwali","wh":3,"source":"ERP","carriers":"1 courier + 2 freight","stage":"Sales","live":""},{"id":"C07","name":"Vindhya Electricals","segment":"Distributor","city":"Indore","normal":700,"peak":2.0,"peaks":"Summer (Apr-Jun)","wh":2,"source":"ERP","carriers":"1 courier + 1 freight","stage":"Sales","live":""},{"id":"C08","name":"Nilgiri Home Essentials","segment":"D2C brand","city":"Coimbatore","normal":1100,"peak":2.8,"peaks":"Diwali, Pongal","wh":1,"source":"Web store","carriers":"2 courier","stage":"Sales","live":""},{"id":"C09","name":"Ganga Steel Traders","segment":"Distributor","city":"Kanpur","normal":450,"peak":1.6,"peaks":"Quarter-end","wh":2,"source":"ERP","carriers":"2 freight","stage":"UAT","live":""},{"id":"C10","name":"Rangoli Home Decor","segment":"D2C brand","city":"Jaipur","normal":1300,"peak":3.2,"peaks":"Diwali","wh":2,"source":"Web store","carriers":"2 courier + 1 freight","stage":"UAT","live":""},{"id":"C11","name":"Kaveri Kitchenware","segment":"D2C brand","city":"Bengaluru","normal":1800,"peak":2.7,"peaks":"Diwali, Onam","wh":2,"source":"Web store","carriers":"2 courier","stage":"UAT","live":""},{"id":"C12","name":"Deccan Link 3PL","segment":"3PL","city":"Hyderabad","normal":5200,"peak":3.0,"peaks":"Diwali, month-end","wh":3,"source":"3 client systems","carriers":"3 courier + 1 freight","stage":"UAT","live":""},{"id":"C13","name":"Pavitra Organics","segment":"D2C brand","city":"Dehradun","normal":600,"peak":2.4,"peaks":"Diwali","wh":1,"source":"Web store","carriers":"2 courier","stage":"UAT","live":""},{"id":"C14","name":"Shakti Industrial Supplies","segment":"Distributor","city":"Ludhiana","normal":1000,"peak":1.7,"peaks":"Quarter-end","wh":2,"source":"ERP","carriers":"1 courier + 2 freight","stage":"Production","live":"Jan 2026"},{"id":"C15","name":"Utsav Gifting Co.","segment":"D2C brand","city":"Delhi","normal":2400,"peak":3.8,"peaks":"Diwali, Rakhi, year-end","wh":2,"source":"Web store","carriers":"3 courier","stage":"Production","live":"Mar 2026"},{"id":"C16","name":"Narmada Agri Inputs","segment":"Distributor","city":"Vadodara","normal":1400,"peak":2.3,"peaks":"Sowing seasons","wh":3,"source":"ERP","carriers":"2 courier + 1 freight","stage":"Production","live":"Nov 2025"},{"id":"C17","name":"Brahmaputra Tea Traders","segment":"Distributor","city":"Guwahati","normal":800,"peak":1.9,"peaks":"Flush seasons","wh":2,"source":"ERP","carriers":"2 courier + 1 freight","stage":"Production","live":"Feb 2026"},{"id":"C18","name":"Lotus Living Furniture","segment":"D2C brand","city":"Kochi","normal":500,"peak":2.6,"peaks":"Onam, Diwali","wh":2,"source":"Web store","carriers":"1 courier + 2 freight","stage":"Production","live":"Dec 2025"},{"id":"C19","name":"Swift Basket Grocers","segment":"D2C brand","city":"Mumbai","normal":6000,"peak":1.5,"peaks":"Festive weekends","wh":4,"source":"Web store","carriers":"3 courier","stage":"Production","live":"Oct 2025"},{"id":"C20","name":"Chambal Cement Dealers","segment":"Distributor","city":"Kota","normal":650,"peak":1.4,"peaks":"Month-end","wh":2,"source":"ERP","carriers":"2 freight","stage":"Production","live":"Apr 2026"},{"id":"C21","name":"Marina Link 3PL","segment":"3PL","city":"Chennai","normal":4500,"peak":2.8,"peaks":"Diwali, Pongal, month-end","wh":3,"source":"5 client systems","carriers":"3 courier + 1 freight","stage":"Production","live":"Sep 2025"}],"clarification":[{"id":"SC-01","cust":"C01","note":"Big orders need finance sign-off before release.","settings":"THR-03, WF-02/S3","type":"Vague quantity","flag":"Yes","question":"Above what order value should finance approval be required?","default":"INR 5,00,000","priority":"High","answer":"Anything above 8 lakh.","resolved":"THR-03 = INR 8,00,000; S3 role = finance_approver","status":"Confirmed","difficulty":"Easy","tests":"Vague amount resolved to a number"},{"id":"SC-02","cust":"C01","note":"Approvals should be quick.","settings":"THR-05","type":"Vague quantity","flag":"Yes","question":"What is the maximum time an approval may take?","default":"4 business hours","priority":"High","answer":"Same day, ideally within 3 hours.","resolved":"THR-05 = 3 business hours","status":"Confirmed","difficulty":"Medium","tests":"Extracts the concrete value from a partly vague answer"},{"id":"SC-03","cust":"C01","note":"Orders should go to the nearest warehouse.","settings":"RULE-21, RULE-22","type":"Missing exception path","flag":"Yes","question":"If the nearest warehouse is out of stock, should the order go to the next-nearest warehouse, wait for stock, or be split?","default":"No fallback (must set)","priority":"High","answer":"Send it to the Jaipur hub as backup.","resolved":"RULE-22 fallback = WH-Jaipur","status":"Confirmed","difficulty":"Medium","tests":"Detects a missing exception path"},{"id":"SC-04","cust":"C01","note":"Orders come from our ERP; accounts are in a separate package.","settings":"INT-01","type":"Missing integration detail","flag":"Yes","question":"Which ERP version do you run, and which fields hold the order value and buyer code?","default":"API v3 standard mapping","priority":"High","answer":"Version 10; order value in 'ord_total', buyer code in 'cust_code'.","resolved":"INT-01 mapping ord_total -> order.value, cust_code -> buyer_code","status":"Confirmed","difficulty":"Medium","tests":"Integration detail needed for C3"},{"id":"SC-05","cust":"C02","note":"Dispatch within 2 days.","settings":"THR-09, ADM-01","type":"Vague quantity","flag":"Yes","question":"Is that 48 clock hours or 2 working days? Which days are non-working?","default":"24 business hours, Mon-Sat","priority":"High","answer":"2 working days, Sundays off.","resolved":"THR-09 = 48 business hours; ADM-01 = Mon-Sat","status":"Confirmed","difficulty":"Medium","tests":"Unit and calendar ambiguity"},{"id":"SC-06","cust":"C02","note":"Escalate delayed orders to the ops head.","settings":"RULE-31, THR-10","type":"Vague quantity","flag":"Yes","question":"How many hours past the dispatch deadline counts as delayed?","default":"6 hours","priority":"Medium","answer":"The default is fine.","resolved":"THR-10 = 6 hours (template default confirmed); escalation role = ops_head","status":"Confirmed","difficulty":"Easy","tests":"Default offered and confirmed"},{"id":"SC-07","cust":"C02","note":"Heavy items go by freight.","settings":"THR-11, RULE-32","type":"Vague quantity","flag":"Yes","question":"Above what weight should an order go by freight carrier?","default":"100 kg","priority":"High","answer":"Anything over 40 kg, our planters are bulky.","resolved":"THR-11 = 40 kg","status":"Confirmed","difficulty":"Medium","tests":"Template default would be wrong for this customer"},{"id":"SC-08","cust":"C02","note":"(No mention of credit terms in notes.)","settings":"THR-01, RULE-02","type":"Not mentioned","flag":"Yes","question":"Do you extend credit to any buyers? If not, we will switch off credit holds.","default":"Credit hold enabled, INR 10,00,000","priority":"Medium","answer":"No, all orders are prepaid or COD.","resolved":"RULE-02 disabled","status":"Confirmed","difficulty":"Medium","tests":"Spots a template setting that does not apply"},{"id":"SC-09","cust":"C03","note":"Orders above INR 5 lakh need approval from the branch manager.","settings":"THR-03, WF-02/S3","type":"None (clear)","flag":"No","question":"(no question)","default":"","priority":"","answer":"","resolved":"THR-03 = INR 5,00,000; S3 role = branch_manager (new role)","status":"Confirmed","difficulty":"Easy","tests":"Control: must NOT be flagged"},{"id":"SC-10","cust":"C03","note":"All orders from key accounts are auto-approved.","settings":"RULE-12 (+ SC-09)","type":"Contradiction","flag":"Yes","question":"Should key-account orders above INR 5 lakh skip branch manager approval, or does the INR 5 lakh rule still apply to them?","default":"","priority":"High","answer":"Key accounts skip approval up to INR 15 lakh; above that, branch manager.","resolved":"New RULE-12a: key accounts exempt up to INR 15,00,000","status":"Confirmed","difficulty":"Hard","tests":"Contradiction across two notes"},{"id":"SC-11","cust":"C03","note":"We work with two courier partners and a freight partner.","settings":"INT-03, RULE-32","type":"Missing integration detail","flag":"Yes","question":"Which partner should get which orders (by weight, zone or cost), and do all three support booking through an API?","default":"Courier by zone, freight > 100 kg","priority":"High","answer":"Courier A for metros, Courier B elsewhere, freight above 60 kg. Freight partner has no API, bookings by email.","resolved":"RULE-32 by zone + THR-11 = 60 kg; WF-05/S2 manual booking for freight","status":"Confirmed","difficulty":"Hard","tests":"Reveals an integration capability gap"},{"id":"SC-12","cust":"C03","note":"Peak is around Diwali.","settings":"Capacity envelope (M7-M10)","type":"Missing volume info","flag":"Yes","question":"What are your normal and peak daily order volumes, and which weeks are peak?","default":"","priority":"High","answer":"Normal about 1,200 a day; around 3,500 a day for three weeks at Diwali.","resolved":"Peak multiplier 2.9x; peak calendar = Diwali 3 weeks","status":"Confirmed","difficulty":"Easy","tests":"Collects inputs for load benchmark (A14)"},{"id":"SC-13","cust":"C04","note":"Client orders come in from multiple client ERPs.","settings":"INT-01 (x n)","type":"Missing integration detail","flag":"Yes","question":"How many client systems send orders, and does each use the same format or need its own mapping?","default":"Single API source","priority":"High","answer":"Four clients: two send CSV over SFTP, two use an API.","resolved":"INT-01 x 4; 2 via file transfer (needs platform eng. check)","status":"Confirmed - open dependency","difficulty":"Hard","tests":"Surfaces a dependency outside the template"},{"id":"SC-14","cust":"C04","note":"Each client has its own SLA.","settings":"THR-09 (per client)","type":"Vague quantity","flag":"Yes","question":"Please list the dispatch SLA for each client.","default":"24 business hours","priority":"High","answer":"Client 1: 24h, Client 2: 24h, Client 3: 48h, Client 4: 72h.","resolved":"THR-09 per client = 24 / 24 / 48 / 72","status":"Confirmed","difficulty":"Medium","tests":"One requirement maps to several values"},{"id":"SC-15","cust":"C04","note":"Exceptions go to the warehouse team.","settings":"WF-04/S2","type":"Missing owner","flag":"Yes","question":"Who exactly owns the exception queue: a named role at each warehouse, or one central planner?","default":"warehouse_planner","priority":"Medium","answer":"The shift supervisor at each warehouse.","resolved":"WF-04/S2 role = shift_supervisor (per warehouse)","status":"Confirmed","difficulty":"Medium","tests":"Team named, owner role missing"},{"id":"SC-16","cust":"C05","note":"Same-day dispatch for all orders placed before 2 pm.","settings":"THR-09, THR-13","type":"None (clear)","flag":"No","question":"(no question)","default":"","priority":"","answer":"","resolved":"THR-13 = 14:00; THR-09 = same business day","status":"Confirmed","difficulty":"Easy","tests":"Control: must NOT be flagged"},{"id":"SC-17","cust":"C05","note":"Returns should be handled smoothly.","settings":"(none - out of scope)","type":"Out of scope","flag":"Route to SE","question":"(no customer question; SE to clarify commercial scope)","default":"","priority":"Medium","answer":"","resolved":"Logged as out of scope (returns not in modules)","status":"Out of scope","difficulty":"Medium","tests":"Must not invent settings"},{"id":"SC-18","cust":"C05","note":"Generate GST invoices on dispatch.","settings":"(Accounts - in ERP)","type":"Out of scope","flag":"Route to SE","question":"(no customer question; SE to confirm invoice is created in ERP from dispatch event)","default":"","priority":"Medium","answer":"","resolved":"Out of scope; optional outbound dispatch event to ERP via integration","status":"Out of scope","difficulty":"Hard","tests":"Recognises Accounts is not a platform module"},{"id":"SC-19","cust":"C06","note":"Credit limit as per our existing policy.","settings":"THR-01, RULE-02, WF-03","type":"Vague quantity","flag":"Yes","question":"Please share the credit policy: the limit for each buyer category and what happens when it is exceeded.","default":"INR 10,00,000 flat","priority":"High","answer":"Category A INR 10L, B INR 5L, C INR 2L; if exceeded, hold for the credit controller.","resolved":"THR-01 tiered A/B/C = 10L / 5L / 2L; RULE-02 -> WF-03 (credit_controller)","status":"Confirmed","difficulty":"Medium","tests":"Requirement points to an external document"},{"id":"SC-20","cust":"C06","note":"Approver: Mr. Rao.","settings":"WF-02/S3, ADM-02","type":"Missing owner","flag":"Yes","question":"Who approves when Mr. Rao is unavailable?","default":"","priority":"Medium","answer":"Ms. Iyer is the backup.","resolved":"finance_approver role with 2 users (Rao, Iyer)","status":"Confirmed","difficulty":"Medium","tests":"Single-person dependency (links to H4)"},{"id":"SC-21","cust":"C06","note":"Dispatch SLA is 24 hours.","settings":"THR-09","type":"None (clear)","flag":"No","question":"(no question)","default":"","priority":"","answer":"","resolved":"THR-09 = 24 business hours","status":"Confirmed","difficulty":"Easy","tests":"Control: must NOT be flagged"},{"id":"SC-22","cust":"C07","note":"Escalate if delayed beyond 4 hours.","settings":"THR-10","type":"None (clear)","flag":"No","question":"(no question)","default":"","priority":"","answer":"","resolved":"THR-10 = 4 hours","status":"Confirmed","difficulty":"Easy","tests":"Control: must NOT be flagged"},{"id":"SC-23","cust":"C07","note":"Orders over INR 2 lakh need approval; orders over INR 1 lakh need approval from the finance head.","settings":"THR-03, RULE-12, WF-02","type":"Contradiction","flag":"Yes","question":"For orders above INR 2 lakh, is it one approval (finance head) or two levels? Who approves orders between 1 and 2 lakh?","default":"","priority":"High","answer":"1-2 lakh: branch manager. Above 2 lakh: finance head.","resolved":"Two-tier approval: INR 1-2L branch_manager; > INR 2L finance_head","status":"Confirmed","difficulty":"Hard","tests":"Overlapping, inverted thresholds"},{"id":"SC-24","cust":"C07","note":"Volumes go up in summer.","settings":"Capacity envelope (M7-M10)","type":"Missing volume info","flag":"Yes","question":"Round 1: What are normal and peak daily volumes, and which months? -> answer still vague -> Round 2: Roughly how many orders a day in summer vs the rest of the year?","default":"","priority":"High","answer":"Round 1: 'They go up a lot.' Round 2: 'About 700 normally, 1,400 in April-June.'","resolved":"Peak multiplier 2.0x; peak calendar = Apr-Jun","status":"Confirmed after round 2","difficulty":"Hard","tests":"Must not accept a vague answer"},{"id":"SC-25","cust":"C08","note":"Integrate with our website orders.","settings":"INT-01","type":"Missing integration detail","flag":"Yes","question":"Which platform runs your website, and does it offer an order API or webhooks?","default":"API v3 pull","priority":"High","answer":"A hosted store platform with webhooks.","resolved":"INT-01 webhook mode","status":"Confirmed","difficulty":"Medium","tests":"Order source is a web store, not an ERP"},{"id":"SC-26","cust":"C08","note":"Usual stuff for escalations.","settings":"RULE-31, THR-10","type":"Not mentioned","flag":"Yes","question":"We will escalate to the dispatch lead 6 hours after the dispatch deadline. Is that right?","default":"6 hours","priority":"Low","answer":"Yes.","resolved":"THR-10 = 6 hours (default confirmed)","status":"Confirmed","difficulty":"Easy","tests":"Low-impact item handled as a quick confirm"},{"id":"SC-27","cust":"C08","note":"Prepaid orders ship first.","settings":"New rule (not in template)","type":"Needs custom rule","flag":"Yes","question":"Should prepaid orders always be picked before COD orders, even when the COD order is older?","default":"","priority":"Medium","answer":"Yes, except COD orders older than 24 hours go first.","resolved":"New RULE-23: prepaid priority with 24h ageing override","status":"Confirmed","difficulty":"Hard","tests":"Requirement not covered by the template"},{"id":"SC-28","cust":"C05","note":"We promise next-day delivery in metros.","settings":"THR-09, RULE-32","type":"Vague quantity","flag":"Yes","question":"Next-day delivery needs early dispatch. Should metro orders have a shorter dispatch SLA and an express courier?","default":"24 business hours, standard courier","priority":"High","answer":"Metro orders: dispatch within 6 hours, express courier.","resolved":"Zone-specific THR-09 = 6h (metro); RULE-32 metro -> express courier","status":"Confirmed","difficulty":"Hard","tests":"Delivery promise implies dispatch settings"}],"checks":[{"id":"CC-01","cust":"C01","setting":"THR-03 approval_limit","configured":"INR 5,00,000 (template default)","signed":"INR 8,00,000 (SC-01)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Value differs from signed-off requirement"},{"id":"CC-02","cust":"C01","setting":"THR-05 approval_sla","configured":"3 business hours","signed":"3 business hours (SC-02)","check":"SIGNOFF_MISMATCH","result":"Pass","blocks":"No","why":"Matches sign-off"},{"id":"CC-03","cust":"C01","setting":"RULE-22 stock_out_fallback","configured":"(empty)","signed":"WH-Jaipur (SC-03)","check":"REQUIRED_FIELD","result":"Error","blocks":"Yes","why":"Required field missing"},{"id":"CC-04","cust":"C01","setting":"INT-01 field mapping","configured":"buyer_code not mapped","signed":"cust_code -> buyer_code (SC-04)","check":"REQUIRED_MAPPING","result":"Error","blocks":"Yes","why":"Mandatory mapping missing; would fail C3"},{"id":"CC-05","cust":"C02","setting":"THR-11 bulky_weight","configured":"100 kg (template default)","signed":"40 kg (SC-07)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Template default left in place"},{"id":"CC-06","cust":"C02","setting":"RULE-02 credit_hold","configured":"enabled","signed":"disabled (SC-08)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Rule should be off"},{"id":"CC-07","cust":"C02","setting":"ADM-01 business_calendar","configured":"Mon-Sun","signed":"Mon-Sat (SC-05)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Calendar changes the SLA clock"},{"id":"CC-08","cust":"C03","setting":"RULE-12 vs RULE-12a","configured":"Both match key-account orders INR 5-15L, same priority, different actions","signed":"RULE-12a exempts key accounts (SC-10)","check":"RULE_CONFLICT","result":"Error","blocks":"Yes","why":"Conflicting rules; would fail C2"},{"id":"CC-09","cust":"C03","setting":"ADM-02 role branch_manager","configured":"0 active users in sandbox","signed":"role required (SC-09)","check":"ROLE_EMPTY","result":"Warning","blocks":"No","why":"Users can be added before UAT; C4 will fail if not"},{"id":"CC-10","cust":"C03","setting":"THR-11 bulky_weight","configured":"60 kg","signed":"60 kg (SC-11)","check":"SIGNOFF_MISMATCH","result":"Pass","blocks":"No","why":"Matches sign-off"},{"id":"CC-11","cust":"C04","setting":"INT-01 (clients 1-2) endpoint","configured":"API v2","signed":"API (SC-13)","check":"DEPRECATED_VERSION","result":"Warning","blocks":"No","why":"v2 deprecated but supported; template is v3"},{"id":"CC-12","cust":"C04","setting":"THR-09 client 4","configured":"72 business hours","signed":"72 (SC-14)","check":"SIGNOFF_MISMATCH","result":"Pass","blocks":"No","why":"Matches sign-off"},{"id":"CC-13","cust":"C05","setting":"THR-13 dispatch_cutoff_time","configured":"16:00 (template default)","signed":"14:00 (SC-16)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Template default left in place"},{"id":"CC-14","cust":"C05","setting":"THR-10 escalation_after_sla","configured":"2 hours","signed":"(no linked requirement)","check":"UNLINKED_CHANGE","result":"Warning","blocks":"No","why":"Changed from template with no requirement behind it; listed for delivery"},{"id":"CC-15","cust":"C06","setting":"THR-01 credit_limit tiers","configured":"A 10L / B 5L / C 2L","signed":"A 10L / B 5L / C 2L (SC-19)","check":"SIGNOFF_MISMATCH","result":"Pass","blocks":"No","why":"Matches sign-off"},{"id":"CC-16","cust":"C06","setting":"WF-03/S2 role credit_controller","configured":"1 active user","signed":"role required (SC-19)","check":"ROLE_EMPTY","result":"Pass","blocks":"No","why":"Role filled"},{"id":"CC-17","cust":"C07","setting":"RULE-12 two-tier approval","configured":"> INR 1L -> finance_head","signed":"1-2L branch_manager; > 2L finance_head (SC-23)","check":"SIGNOFF_MISMATCH","result":"Error","blocks":"Yes","why":"Tiers swapped"},{"id":"CC-18","cust":"C07","setting":"WF-02/S3 SLA reference","configured":"(null)","signed":"every approval step needs an SLA","check":"REQUIRED_FIELD","result":"Error","blocks":"Yes","why":"Required field missing"},{"id":"CC-19","cust":"C08","setting":"INT-01 retry_policy","configured":"0 retries","signed":"template minimum 3","check":"BELOW_MINIMUM","result":"Warning","blocks":"No","why":"Will lose orders on brief outages"},{"id":"CC-20","cust":"C08","setting":"RULE-23 prepaid priority","configured":"Never reached: RULE-21 has stop-processing set","signed":"RULE-23 must fire (SC-27)","check":"UNREACHABLE_RULE","result":"Error","blocks":"Yes","why":"Rule can never fire; would fail C2"}],"uat":[{"id":"UD-01","cust":"C09","metric":"M1 Approval cycle time","observed":"7.2 h","target":"<= 4 h","evidence":"62% of test orders hit approval; steel orders are mostly INR 3-6L; one finance_approver handles all of them","candidates":"THR-03, THR-05, WF-02/S3 users","root":"Signed-off approval_limit (INR 2L) sends most orders to one approver","cls":"Requirement conflicts with target","action":"Escalate options to customer via delivery: (a) raise limit to INR 5L, (b) add a second approver","sandbox":"(a) approvals 18% of orders, M1 3.1 h; (b) M1 3.8 h","mustnot":"Change approval_limit without customer decision","difficulty":"Hard"},{"id":"UD-02","cust":"C09","metric":"M2 Auto-routing accuracy","observed":"88%","target":">= 95%","evidence":"80% of manual reassignments are pincodes 208xxx moved from WH-1 to WH-2","candidates":"RULE-21 (state rule, pincode rule), INT-02","root":"General state rule has higher priority than the specific pincode rule","cls":"Configuration error","action":"Propose priority swap (specific before general)","sandbox":"M2 97%, M3 3.1%, no other metric worse","mustnot":"","difficulty":"Medium"},{"id":"UD-03","cust":"C10","metric":"M4 On-time dispatch","observed":"88%","target":">= 95%","evidence":"Late orders are almost all > 40 kg; freight carrier collects twice a week; sign-off says 24h dispatch for all orders","candidates":"THR-09, THR-11, RULE-32, WF-05","root":"Signed-off 24h SLA cannot be met for bulky items with current freight collection","cls":"Requirement conflicts with target","action":"Draft options for customer: (a) 72h SLA for bulky, (b) daily freight collection, (c) separate M4 target for bulky","sandbox":"(a) M4 97%; (b) depends on carrier contract; (c) M4 standard 98%","mustnot":"Silently change the SLA","difficulty":"Hard"},{"id":"UD-04","cust":"C10","metric":"M6 Integration sync success","observed":"96.5%","target":">= 99%","evidence":"Failures cluster 02:00-03:00 daily; carrier returns maintenance errors; retries 3 x 1 min","candidates":"INT-03 retry policy, INT-03 sync frequency","root":"Retry window too short for the carrier's nightly maintenance","cls":"Configuration error","action":"Propose back-off retries up to 90 min and queue bookings in the window","sandbox":"M6 99.6%","mustnot":"","difficulty":"Medium"},{"id":"UD-05","cust":"C11","metric":"M3 Manual override rate","observed":"9%","target":"<= 5%","evidence":"Overrides are users changing the carrier for Northeast pincodes; Courier A returns 'not serviceable'","candidates":"RULE-32 zone map, INT-03","root":"Carrier zone map sends Northeast orders to a courier that does not serve them","cls":"Configuration error","action":"Propose Northeast zone -> Courier B","sandbox":"M3 4.2%, M4 +1.5 pts","mustnot":"","difficulty":"Medium"},{"id":"UD-06","cust":"C11","metric":"M5 Escalation rate","observed":"7%","target":"<= 3%","evidence":"Escalations fire mainly for orders created after 16:00; escalation threshold is 2h","candidates":"RULE-31, THR-10, THR-13","root":"Two causes: RULE-31 starts the clock at order creation, not the next business slot (primary); THR-10 = 2h with no linked requirement (secondary)","cls":"Configuration error (two causes)","action":"Propose RULE-31 fix; ask SE whether 2h was a customer request before changing THR-10","sandbox":"RULE-31 fix: 3.6%; plus THR-10 = 6h: 2.1%","mustnot":"Change THR-10 without checking its origin","difficulty":"Hard"},{"id":"UD-07","cust":"C12","metric":"M9 Integration load","observed":"412 rate-limit errors at peak test","target":"Zero","evidence":"Carrier booking is called once per order; peak test reaches ~1,900 calls/hr vs limit 600","candidates":"INT-03 booking mode, INT-03 sync frequency","root":"Per-order booking calls exceed the carrier's rate limit at peak","cls":"Configuration error","action":"Propose batched booking every 5 min","sandbox":"Zero rate-limit errors at 3x peak","mustnot":"","difficulty":"Medium"},{"id":"UD-08","cust":"C12","metric":"M10 Workflow capacity","observed":"Exception queue 4x planner capacity at peak","target":"Within SLA","evidence":"70% of exceptions are allocation timeouts; warehouse system p95 response rises to 40 min at peak","candidates":"THR-07, WF-04/S2 users, INT-02","root":"Allocation timeout (30 min) too short at peak, pushing orders into the exception queue","cls":"Configuration error (capacity)","action":"Propose THR-07 = 60 min; flag planner capacity to delivery","sandbox":"Exceptions -65% at peak; queue within SLA","mustnot":"","difficulty":"Hard"},{"id":"UD-09","cust":"C13","metric":"M1 Approval cycle time","observed":"11 h","target":"<= 4 h","evidence":"All test approvals were raised in one batch on Friday 18:00; business calendar excludes Sunday","candidates":"THR-03, THR-05, ADM-01","root":"Test data artefact: unrealistic timestamps, not a configuration problem","cls":"Test data issue","action":"Flag test data; recommend re-run with realistic timestamps; no configuration change","sandbox":"(none)","mustnot":"Propose any configuration change","difficulty":"Hard"},{"id":"UD-10","cust":"C13","metric":"C3 Integration data accuracy","observed":"96% match on sample","target":"100%","evidence":"Mismatched orders differ by exactly the tax amount","candidates":"INT-01 field mapping","root":"Mapping uses the tax-inclusive total; Vertex Ops expects the pre-tax value","cls":"Configuration error","action":"Propose mapping net_total -> order.value","sandbox":"100% match on sample","mustnot":"","difficulty":"Easy"},{"id":"UD-11","cust":"C09","metric":"C4 Role completeness","observed":"credit_controller has 0 users","target":"100%","evidence":"Rule check already identifies the empty role","candidates":"ADM-02","root":"Admin setup incomplete","cls":"Rule-only (no AI needed)","action":"Rule routes to delivery to add a user; agent is not invoked","sandbox":"(n/a)","mustnot":"Invoke AI diagnosis","difficulty":"Easy"},{"id":"UD-12","cust":"C12","metric":"M4 On-time dispatch","observed":"93% (was 97% before last change)","target":">= 95%","evidence":"Drop started right after UD-07 fix; late orders are those booked in the last 5 min before cutoff","candidates":"INT-03 batch interval (recent change), THR-13","root":"Regression from the batching change: bookings for late orders miss the cutoff","cls":"Regression from recent change","action":"Propose batch interval 2 min (stays under 600 calls/hr)","sandbox":"M4 97%, M9 still zero errors","mustnot":"","difficulty":"Hard"}],"safety":[{"id":"PS-01","cust":"C14","signal":"Carrier sync success 91% over the last hour","check":"H1","alert":"Yes","sev":"P1","route":"Support -> Platform eng.","why":"Below 95%"},{"id":"PS-02","cust":"C15","signal":"Carrier sync success 96% over the last hour","check":"H1","alert":"No","sev":"","route":"","why":"Near miss: above 95%"},{"id":"PS-03","cust":"C16","signal":"ERP authentication errors for 20 min (expired credential)","check":"H1","alert":"Yes","sev":"P1","route":"CSM -> customer IT","why":"Customer-side cause"},{"id":"PS-04","cust":"C17","signal":"14 orders in approval step for 9 h (SLA 4 h)","check":"H3","alert":"Yes","sev":"P2","route":"CSM -> customer admin","why":"More than 2x SLA"},{"id":"PS-05","cust":"C18","signal":"Orders in dispatch step for 40 h (SLA 24 h)","check":"H3","alert":"No","sev":"","route":"","why":"Near miss: 1.7x SLA"},{"id":"PS-06","cust":"C19","signal":"Only finance_approver user deactivated","check":"H4","alert":"Yes","sev":"P1","route":"CSM -> customer admin","why":"Role has no active user"},{"id":"PS-07","cust":"C20","signal":"Approver on leave but account still active","check":"H4","alert":"No","sev":"","route":"","why":"Known limitation: leave not visible to the rule"},{"id":"PS-08","cust":"C14","signal":"Sync fails for 20 min then recovers; 1-hour success 97%","check":"H1","alert":"No","sev":"","route":"","why":"Window-based rule avoids noise"},{"id":"PS-09","cust":"C21","signal":"H1 P1 ticket unacknowledged for 1 hour","check":"Escalation","alert":"Yes (re-escalate)","sev":"P1","route":"Platform eng. lead","why":"Response time passed"},{"id":"PS-10","cust":"C15","signal":"H3 condition true on 3 steps of the same account","check":"H3 (dedupe)","alert":"Yes (1 ticket)","sev":"P2","route":"CSM -> customer admin","why":"One ticket per issue per account"}],"drift":[{"id":"PD-01","cust":"C14","metric":"M1 Approval cycle time","unit":"hours","baseline":3.5,"weeks":[3.6,3.8,4.4,5.2,6.1,7.0,8.2,9.0],"context":"Order volume doubled; RULE-12 fires on 40% of orders (was 12%)","cls":"Real drift","cause":"approval_limit no longer fits volume","action":"Propose THR-03 INR 5L -> 8L; expected approvals -30%","difficulty":"Medium"},{"id":"PD-02","cust":"C15","metric":"M4 On-time dispatch","unit":"%","baseline":96,"weeks":[96,95,96,89,87,90,95,96],"context":"Weeks 4-6 fall in the Diwali window in the peak calendar","cls":"Noise (known peak)","cause":"Seasonal surge","action":"No drift alert; note for next year's peak-mode plan","difficulty":"Hard"},{"id":"PD-03","cust":"C16","metric":"M2 Auto-routing accuracy","unit":"%","baseline":97,"weeks":[97,96,96,91,90,89,89,88],"context":"New warehouse WH-4 (Nagpur) appears in manual reassignments from week 4","cls":"Real drift","cause":"Routing rules do not include the new warehouse","action":"Propose RULE-21 regions for WH-4","difficulty":"Medium"},{"id":"PD-04","cust":"C17","metric":"M6 Integration sync success","unit":"%","baseline":99.5,"weeks":[99.5,99.4,97.1,96.8,96.9,97.0,96.7,96.8],"context":"Step change after carrier API version notice; H1 never fires (stays above 95%)","cls":"Real drift","cause":"Carrier endpoint version outdated","action":"Propose INT-03 endpoint update","difficulty":"Medium"},{"id":"PD-05","cust":"C18","metric":"M3 Manual override rate","unit":"%","baseline":3.0,"weeks":[3.0,3.4,3.9,4.5,5.2,6.0,6.8,7.5],"context":"Overrides concentrated on a new bulky sofa category","cls":"Real drift (gradual)","cause":"Carrier and SLA rules do not fit the new category","action":"Propose category-specific THR-11 / RULE-32","difficulty":"Hard"},{"id":"PD-06","cust":"C19","metric":"M8 Order throughput","unit":"x tested envelope","baseline":1.0,"weeks":[1.0,1.1,1.2,1.3,1.3,1.4,1.4,1.4],"context":"Above the tested envelope for 16 days, outside any known peak","cls":"Sustained growth","cause":"Business has grown","action":"Re-benchmark + Level 2 review of volume-linked settings; update baseline with approval","difficulty":"Hard"},{"id":"PD-07","cust":"C20","metric":"M1 Approval cycle time","unit":"hours","baseline":3.2,"weeks":[3.1,3.3,3.2,3.4,3.1,3.2,3.3,3.2],"context":"Single-day spike to 12 h on month-end, weekly median unaffected","cls":"Noise (month-end)","cause":"Month-end batch","action":"No action","difficulty":"Medium"},{"id":"PD-08","cust":"C21","metric":"M5 Escalation rate","unit":"%","baseline":2.0,"weeks":[2.0,2.1,1.9,2.2,4.8,5.1,5.0,5.3],"context":"dispatch_lead role reassigned to one person covering two warehouses from week 5","cls":"Real drift","cause":"Workflow capacity: one dispatch lead for two sites","action":"Propose adding a dispatch_lead user per warehouse","difficulty":"Medium"}],"metrics":[{"id":"M1","type":"Performance (carried to production)","name":"Approval cycle time","module":"Order Mgmt","def":"Median time from approval request to decision","target":"<= 4 business hours","source":"step_completed (WF-02/S3)","settings":"THR-03, THR-05, WF-02"},{"id":"M2","type":"Performance (carried to production)","name":"Auto-routing accuracy","module":"Fulfilment","def":"% orders allocated to the correct warehouse with no manual reassignment","target":">= 95%","source":"rule_fired, manual_override","settings":"RULE-21, RULE-22, INT-02"},{"id":"M3","type":"Performance (carried to production)","name":"Manual override rate","module":"All","def":"% orders where a user bypassed a rule or step","target":"<= 5%","source":"manual_override","settings":"Any rule"},{"id":"M4","type":"Performance (carried to production)","name":"On-time dispatch","module":"Shipping","def":"% orders dispatched within dispatch SLA","target":">= 95%","source":"step_completed (WF-05)","settings":"THR-09, THR-11, THR-13, RULE-32, WF-05"},{"id":"M5","type":"Performance (carried to production)","name":"Escalation rate","module":"Shipping","def":"% orders that triggered a late escalation","target":"<= 3%","source":"rule_fired (RULE-31)","settings":"THR-10, RULE-31, THR-13"},{"id":"M6","type":"Performance (carried to production)","name":"Integration sync success & delay","module":"All","def":"% successful syncs; p95 sync delay","target":">= 99%; <= 15 min","source":"integration_sync","settings":"INT-01, INT-02, INT-03"},{"id":"M7","type":"Load & capacity (carried to production)","name":"Concurrent users","module":"Platform","def":"p95 response time at 1.5x expected peak logged-in users","target":"<= 2 s","source":"load test / platform telemetry","settings":"(platform)"},{"id":"M8","type":"Load & capacity (carried to production)","name":"Order throughput","module":"All","def":"Orders/hour processed without backlog at expected peak x festive multiplier","target":"No backlog at peak","source":"load test / step_completed","settings":"THR-07, WF-04, WF-05"},{"id":"M9","type":"Load & capacity (carried to production)","name":"Integration load","module":"All","def":"Rate-limit errors from ERP / warehouse / carrier at peak volume","target":"Zero","source":"integration_sync","settings":"INT-01..03"},{"id":"M10","type":"Load & capacity (carried to production)","name":"Workflow capacity","module":"All","def":"Approval and exception queues per assigned person clear within SLA at peak","target":"Within SLA at peak","source":"step_completed","settings":"THR-03, THR-07, WF-02, WF-04"},{"id":"C1","type":"Correctness (one-time, go-live)","name":"End-to-end scenarios","module":"All","def":"Agreed scenarios complete correctly (normal, high-value, stock-out, late shipment, carrier failure)","target":"100% critical; >= 95% overall","source":"UAT scenario runs","settings":"All"},{"id":"C2","type":"Correctness (one-time, go-live)","name":"Rule coverage","module":"All","def":"Every rule fires at least once in testing; no conflicting rules","target":"100%","source":"rule_fired","settings":"All rules"},{"id":"C3","type":"Correctness (one-time, go-live)","name":"Integration data accuracy","module":"All","def":"Order values and fields match between source system and Vertex Ops on a sample","target":"100% on sample","source":"reconciliation sample","settings":"INT-01..03"},{"id":"C4","type":"Correctness (one-time, go-live)","name":"Role completeness","module":"Admin","def":"Every workflow step has an active user in its assigned role","target":"100%","source":"ADM-02","settings":"ADM-02"}]};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/<=/g, "\u2264").replace(/>=/g, "\u2265").replace(/->/g, "\u2192").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const cust = Object.fromEntries(D.customers.map(c => [c.id, c]));
+const by = (arr, k) => arr.reduce((m, x) => ((m[x[k]] ||= []).push(x), m), {});
+const clarBy = by(D.clarification, "cust"), checkBy = by(D.checks, "cust"), uatBy = by(D.uat, "cust");
+const L = (x) => `<span class="layer L-${x[0]}">${x}</span>`;
+
+const ROUND2 = {"SC-24": {q1:"What are your normal and peak daily order volumes, and which months are peak?", a1:"They go up a lot.", q2:"Roughly how many orders a day in summer compared with the rest of the year?", a2:"About 700 normally, 1,400 in April to June."}};
+
+let clock = new Date(2026, 9, 19, 9, 30);
+const st = {
+  view: "clar", clarCust: "C01", checkCust: "C01", uatCust: "C09", uatCase: null,
+  clar: {}, edit: {}, signed: {}, pack: {}, fixed: {}, uat: {}, tickets: {}, drift: {}, log: []
+};
+D.clarification.forEach(c => {
+  st.clar[c.id] = { stage: c.flag === "Yes" ? "drafted" : c.flag === "No" ? "clear" : "routed",
+    q: ROUND2[c.id] ? ROUND2[c.id].q1 : c.question };
+});
+D.uat.forEach(u => st.uat[u.id] = u.cls.startsWith("Rule-only") ? "rule" : "open");
+D.safety.forEach(p => st.tickets[p.id] = p.alert.startsWith("Yes") ? "open" : "none");
+D.drift.forEach(d => st.drift[d.id] = "pending");
+
+function log(actor, layer, text){
+  clock = new Date(clock.getTime() + 7 * 60000);
+  st.log.unshift({ t: clock.toLocaleString("en-IN", {day:"2-digit", month:"short", hour:"2-digit", minute:"2-digit"}), actor, layer, text });
+}
+log("Copilot", "L", "Read handoff notes for 8 customers in Sales; drafted clarification questions for 22 ambiguous requirements.");
+log("Copilot", "R", "Ran configuration checks on 8 draft configurations: 11 errors, 4 warnings.");
+log("Copilot", "R", "Production safety net: 6 alerts raised across H1, H3, H4. No AI used on live customers.");
+
+const custOpts = (stage, sel) => D.customers.filter(c => c.stage === stage)
+  .map(c => `<option value="${c.id}" ${c.id === sel ? "selected" : ""}>${c.id} · ${esc(c.name)}</option>`).join("");
+
+/* ---------------- Sales: clarification ---------------- */
+function clarStatus(c){
+  const s = st.clar[c.id].stage;
+  if (s === "clear") return `<span class="chip c-ok">Clear</span>`;
+  if (s === "routed") return `<span class="chip c-mut">Out of scope · routed to SE</span>`;
+  if (s === "resolved") return `<span class="chip c-acc">${esc(c.status)}</span>`;
+  if (s === "sent" || s === "sent2") return `<span class="chip c-info">Waiting for customer${s === "sent2" ? " · round 2" : ""}</span>`;
+  if (s === "round2") return `<span class="chip c-warn">Answer still vague · round 2 drafted</span>`;
+  return `<span class="chip c-warn">Ambiguous · ${esc(c.type)}</span>`;
+}
+const pendingOf = id => (clarBy[id] || []).filter(c => ["drafted","sent","round2","sent2"].includes(st.clar[c.id].stage)).length;
+
+function viewClar(){
+  const id = st.clarCust, cases = clarBy[id] || [], c0 = cust[id];
+  const total = cases.length, pend = pendingOf(id), done = total - pend;
+  const drafted = cases.filter(c => ["drafted","round2"].includes(st.clar[c.id].stage)).length;
+  const notes = cases.map(c => {
+    const k = c.flag === "Yes" ? "amb" : c.flag === "No" ? "clear" : "oos";
+    return `<div class="note ${k}">${esc(c.note)}<div class="meta"><span class="mono muted">${c.id}</span><span class="mono">${esc(c.settings)}</span></div></div>`;
+  }).join("");
+  const reqs = cases.map(c => {
+    const s = st.clar[c.id], r2 = ROUND2[c.id];
+    let body = "";
+    if (s.stage === "clear") body = `<div class="small muted">Requirement already gives a concrete value. No question needed.</div><div><b>Value:</b> ${esc(c.resolved)}</div>`;
+    else if (s.stage === "routed") body = `<div class="small muted">Not a setting in the platform's modules. Logged for the SE to clarify scope; no customer question drafted.</div><div>${esc(c.resolved)}</div>`;
+    else {
+      const editing = st.edit[c.id];
+      const qLabel = ["round2","sent2"].includes(s.stage) ? "Follow-up question (round 2)" : "Draft question";
+      body += `<div class="q"><label>${qLabel} ${L("L")}</label>${editing ? `<textarea id="ta-${c.id}">${esc(s.q)}</textarea>` : esc(s.q)}
+        ${c.default ? `<div class="small muted" style="margin-top:4px">Template default offered: <span class="mono">${esc(c.default)}</span></div>` : ""}</div>`;
+      if (r2 && ["round2","sent2","resolved"].includes(s.stage)) body = `<div class="ans small"><b>Round 1 answer:</b> "${esc(r2.a1)}" <span class="chip c-warn">too vague</span></div>` + body;
+      if (s.stage === "resolved") body += `<div class="ans"><div class="small muted">Customer answer</div>"${esc(r2 ? r2.a2 : c.answer)}"</div><div><b>Resolved value ${L("L")}:</b> <span class="mono">${esc(c.resolved)}</span></div>`;
+      const acts = [];
+      if (["drafted","round2"].includes(s.stage)) {
+        acts.push(editing ? `<button class="btn" data-a="save" data-id="${c.id}">Save question</button>` : `<button class="btn" data-a="edit" data-id="${c.id}">Edit</button>`);
+        acts.push(`<button class="btn primary" data-a="send" data-id="${c.id}">Approve &amp; send ${L("H")}</button>`);
+      }
+      if (["sent","sent2"].includes(s.stage)) acts.push(`<button class="btn" data-a="reply" data-id="${c.id}">Simulate customer reply</button>`);
+      if (acts.length) body += `<div class="acts">${acts.join("")}</div>`;
+    }
+    return `<article class="req"><div class="top"><div class="pill-row"><span class="mono muted">${c.id}</span><span class="mono">${esc(c.settings)}</span>${c.priority ? `<span class="chip c-mut">${esc(c.priority)} impact</span>` : ""}</div>${clarStatus(c)}</div>
+      <div class="small muted">"${esc(c.note)}"</div>${body}</article>`;
+  }).join("");
+  const pack = st.pack[id] ? packHtml(id) : "";
+  return `
+  <header class="head"><div><div class="eyebrow">Sales · Requirement Clarification Agent</div><h1>${esc(c0.name)}</h1>
+    <p>The agent checks each requirement against the setting it maps to. If the requirement doesn't give a concrete value, it drafts a question. The SE approves every question before it reaches the customer.</p></div>
+    <label class="small muted">Customer<br><select id="sel-clar">${custOpts("Sales", id)}</select></label></header>
+  <div class="banner ${pend ? "info" : "ok"}"><div style="flex:1"><b>${done} of ${total} requirements settled</b> · ${pend ? `${pend} still open` : "ready for customer sign-off"}
+    <div class="prog" style="margin-top:6px"><i style="width:${Math.round(done/total*100)}%"></i></div></div>
+    <div class="acts pill-row">${drafted ? `<button class="btn" data-a="sendall">Approve &amp; send all drafted (${drafted}) ${L("H")}</button>` : ""}
+    <button class="btn primary" data-a="pack" ${pend ? "disabled" : ""}>Prepare sign-off pack</button></div></div>
+  ${pack}
+  <div class="grid2">
+    <section class="panel"><div class="ph"><h2>Handoff notes from sales</h2><span class="small muted">${c0.segment} · ${c0.city}</span></div><div class="pb notes">${notes}</div></section>
+    <section class="panel"><div class="ph"><h2>Requirements and questions</h2>${L("L")}</div><div class="pb list">${reqs}</div></section>
+  </div>`;
+}
+function packHtml(id){
+  const rows = (clarBy[id] || []).filter(c => st.clar[c.id].stage !== "routed")
+    .map(c => `<tr><td>${esc(c.note)}</td><td class="mono">${esc(c.resolved)}</td></tr>`).join("");
+  const oos = (clarBy[id] || []).filter(c => st.clar[c.id].stage === "routed").map(c => esc(c.note)).join("; ");
+  const targets = D.metrics.filter(m => m.id.startsWith("M")).map(m => `<span class="chip c-mut"><span class="mono">${m.id}</span> ${esc(m.name)}: ${esc(m.target)}</span>`).join(" ");
+  const signed = st.signed[id];
+  return `<section class="panel"><div class="ph"><h2>Sign-off pack ${L("L")}</h2>${signed ? `<span class="chip c-ok">Signed by customer</span>` : `<span class="chip c-warn">Awaiting customer signature</span>`}</div>
+   <div class="pb"><div class="scroll"><table class="tbl pack"><thead><tr><th>Requirement (source)</th><th>Setting and agreed value</th></tr></thead><tbody>${rows}</tbody></table></div>
+   ${oos ? `<p class="small muted">Out of scope, not configured: ${oos}</p>` : ""}
+   <p class="small" style="margin:10px 0 6px"><b>Go-live targets in the same sign-off</b> (template defaults shown; agreed per customer):</p><div class="pill-row">${targets}</div>
+   <div class="acts pill-row" style="margin-top:12px">${signed ? `<span class="small muted">Changes after sign-off are logged as change requests.</span>` : `<button class="btn primary" data-a="sign">Record customer sign-off ${L("H")}</button>`}</div></div></section>`;
+}
+
+/* ---------------- Sales: config checks ---------------- */
+function viewChecks(){
+  const id = st.checkCust, rows = checkBy[id] || [], c0 = cust[id];
+  const res = r => st.fixed[r.id] ? "Pass" : r.result;
+  const errs = rows.filter(r => res(r) === "Error" && r.blocks === "Yes").length;
+  const warns = rows.filter(r => res(r) === "Warning").length;
+  const chip = r => { const v = res(r); return v === "Error" ? `<span class="chip c-bad">Error</span>` : v === "Warning" ? `<span class="chip c-warn">Warning</span>` : `<span class="chip c-ok">${st.fixed[r.id] ? "Fixed" : "Pass"}</span>`; };
+  const tr = rows.map(r => `<tr><td class="mono muted">${r.id}</td><td class="mono">${esc(r.setting)}</td><td>${esc(r.configured)}</td><td>${esc(r.signed)}</td><td class="mono small">${esc(r.check)}</td><td>${chip(r)}</td>
+     <td class="small">${esc(r.why)}</td><td>${res(r) === "Error" ? `<button class="btn" data-a="fix" data-id="${r.id}">Mark fixed ${L("H")}</button>` : ""}</td></tr>`).join("");
+  return `
+  <header class="head"><div><div class="eyebrow">Sales · Rule-based checks ${L("R")}</div><h1>${esc(c0.name)}</h1>
+   <p>Checks run on every save while the SE configures. Only hard errors block the handoff to UAT; warnings are passed to delivery.</p></div>
+   <label class="small muted">Customer<br><select id="sel-checks">${custOpts("Sales", id)}</select></label></header>
+  <div class="banner ${errs ? "bad" : "ok"}"><div><b>${errs ? `Handoff to UAT blocked: ${errs} error${errs > 1 ? "s" : ""} to fix` : "Ready for handoff to UAT"}</b>
+   <div class="small">${warns} warning${warns === 1 ? "" : "s"} will be listed for delivery. Configuration Record carries requirements, assumptions and the reason for each setting.</div></div></div>
+  <section class="panel"><div class="ph"><h2>Checks against signed-off values</h2><span class="small muted">${rows.length} checks</span></div>
+   <div class="scroll"><table class="tbl"><thead><tr><th>Check</th><th>Setting</th><th>Draft value</th><th>Signed-off / required</th><th>Rule</th><th>Result</th><th>Why</th><th></th></tr></thead><tbody>${tr}</tbody></table></div></section>`;
+}
+
+/* ---------------- UAT: diagnosis ---------------- */
+const mid = m => m.split(" ")[0];
+function visibleUat(id){ return (uatBy[id] || []).filter(u => u.id !== "UD-12" || st.uat["UD-07"] === "applied"); }
+function metricState(id, m){
+  const u = visibleUat(id).find(x => mid(x.metric) === m.id);
+  if (!u) return { cls: "", label: "Pass", chip: "c-ok" };
+  const s = st.uat[u.id];
+  if (s === "applied") return { cls: "fixed", label: "Pass after fix", chip: "c-acc", u };
+  if (s === "awaiting") return { cls: "wait", label: "Customer decision", chip: "c-warn", u };
+  if (s === "retest") return { cls: "wait", label: "Re-test pending", chip: "c-info", u };
+  if (s === "rule") return { cls: "fail", label: "Rule: routed", chip: "c-bad", u };
+  return { cls: "fail", label: "Fail · " + u.observed, chip: "c-bad", u };
+}
+function viewUat(){
+  const id = st.uatCust, c0 = cust[id], cases = visibleUat(id);
+  if (!st.uatCase || !cases.find(u => u.id === st.uatCase)) st.uatCase = (cases.find(u => st.uat[u.id] === "open") || cases[0] || {}).id;
+  const tiles = D.metrics.map(m => { const s = metricState(id, m);
+    return `<button class="metric ${s.cls} ${s.u ? "click" : ""}" ${s.u ? `data-a="pick" data-id="${s.u.id}" aria-pressed="${s.u.id === st.uatCase}"` : "disabled"}>
+      <span class="id">${m.id} · target ${esc(m.target)}</span><span class="nm">${esc(m.name)}</span><span class="chip ${s.chip}">${esc(s.label)}</span></button>`; }).join("");
+  const u = cases.find(x => x.id === st.uatCase);
+  return `
+  <header class="head"><div><div class="eyebrow">UAT · Diagnosis &amp; Tuning Agent</div><h1>${esc(c0.name)}</h1>
+   <p>Rules run the tests and narrow down which settings could cause a failure. The agent investigates the event data, tests a fix in a sandbox copy, then proposes it or hands the decision back to the customer.</p></div>
+   <label class="small muted">Customer<br><select id="sel-uat">${custOpts("UAT", id)}</select></label></header>
+  <section class="panel"><div class="ph"><h2>Go-live checklist ${L("R")}</h2><span class="small muted">Select a failing metric to see the diagnosis</span></div><div class="pb metrics">${tiles}</div></section>
+  ${u ? diagHtml(u) : `<div class="panel empty">No open failures for this customer.</div>`}`;
+}
+function diagHtml(u){
+  const s = st.uat[u.id];
+  const shadow = u.id === "UD-06" ? `<span class="chip c-warn">J* ranks THR-10 first · disagrees · logged for evaluation</span>` : `<span class="chip c-mut">J* agrees with agent's top cause</span>`;
+  const steps = [["Detect","R","Metric below target"],["Narrow","R","Dependency map"],["Investigate","L","Event patterns"],["Rank","J*","Shadow mode"],["Sandbox test","L","Clone + replay (A20)"],["Decide","H","Delivery engineer"]];
+  const pipe = steps.map(x => `<div class="step"><b>${x[0]}</b>${L(x[1])}<span class="muted">${x[2]}</span></div>`).join("");
+  let act = "";
+  if (s === "rule") act = `<div class="box none"><h3>Handled by rules. AI not invoked.</h3><div>${esc(u.action)}</div></div>`;
+  else if (u.cls.startsWith("Requirement")) act = `<div class="box ask"><h3>Needs a customer decision ${L("L")}</h3><div>The configuration matches the signed-off requirement, but the requirement can't meet the target. The agent won't change it. It drafts options for the customer instead:</div><div><b>${esc(u.action)}</b></div><div class="small">Sandbox estimate: ${esc(u.sandbox)}</div>
+      <div class="acts pill-row">${s === "awaiting" ? `<span class="chip c-warn">Options sent · awaiting customer · will be logged as a change request</span>` : `<button class="btn primary" data-a="ask" data-id="${u.id}">Send options via delivery ${L("H")}</button>`}</div></div>`;
+  else if (u.cls.startsWith("Test data")) act = `<div class="box none"><h3>No configuration change</h3><div>${esc(u.action)}</div>
+      <div class="acts pill-row">${s === "retest" ? `<span class="chip c-info">Marked for re-run with realistic test data</span>` : `<button class="btn primary" data-a="retest" data-id="${u.id}">Mark test data for re-run ${L("H")}</button>`}</div></div>`;
+  else act = `<div class="box prop"><h3>Proposed change ${L("L")}</h3><div><b>${esc(u.action)}</b></div><div class="small">Sandbox result on all metrics: ${esc(u.sandbox)}</div>
+      <div class="acts pill-row">${s === "applied" ? `<span class="chip c-acc">Applied in UAT · snapshot saved · regression re-run passed</span>` : `<button class="btn primary" data-a="apply" data-id="${u.id}">Approve &amp; apply in UAT ${L("H")}</button><button class="btn danger" data-a="reject" data-id="${u.id}">Reject</button>`}</div></div>`;
+  return `<section class="panel"><div class="ph"><h2><span class="mono muted">${u.id}</span> ${esc(u.metric)}: ${esc(u.observed)} vs ${esc(u.target)}</h2><span class="chip ${u.cls.startsWith("Configuration") ? "c-info" : u.cls.startsWith("Requirement") ? "c-warn" : "c-mut"}">${esc(u.cls)}</span></div>
+   <div class="pb" style="display:flex;flex-direction:column;gap:14px">
+    <div class="pipe">${pipe}</div>
+    <dl class="kv">
+      <dt>Narrowed to ${L("R")}</dt><dd class="mono">${esc(u.candidates)}</dd>
+      <dt>Evidence ${L("L")}</dt><dd>${esc(u.evidence)}</dd>
+      <dt>Root cause ${L("L")}</dt><dd>${esc(u.root)}</dd>
+      <dt>Shadow check ${L("J*")}</dt><dd>${shadow}</dd>
+    </dl>
+    ${act}
+    ${u.mustnot ? `<div class="guard"><b>Guardrail:</b> the agent will not ${esc(u.mustnot.charAt(0).toLowerCase() + u.mustnot.slice(1))}. Signed-off requirements are hard limits.</div>` : ""}
+   </div></section>`;
+}
+
+/* ---------------- Production: safety net ---------------- */
+function viewSafety(){
+  const open = D.safety.filter(p => st.tickets[p.id] === "open").length;
+  const tr = D.safety.map(p => { const t = st.tickets[p.id], c0 = cust[p.cust];
+    const status = t === "none" ? `<span class="chip c-mut">Checked · no alert</span>` : t === "ack" ? `<span class="chip c-ok">Acknowledged</span>` : `<span class="chip ${p.sev === "P1" ? "c-bad" : "c-warn"}">${esc(p.sev)} · open</span>`;
+    return `<tr><td class="mono muted">${p.id}</td><td>${esc(c0.name)}</td><td>${esc(p.signal)}</td><td class="mono">${esc(p.check)}</td><td>${status}</td><td class="small">${esc(p.route || "-")}</td><td class="small muted">${esc(p.why)}</td>
+      <td>${t === "open" ? `<button class="btn" data-a="ack" data-id="${p.id}">Acknowledge ${L("H")}</button>` : ""}</td></tr>`; }).join("");
+  return `
+  <header class="head"><div><div class="eyebrow">Production · Safety net (MVP) ${L("R")}</div><h1>Live customer alerts</h1>
+   <p>In the MVP, live customers are covered only by rules that can't be ambiguous: integration failing (H1), orders stuck (H3), approver missing (H4). Tickets go to the existing support tool and follow the escalation matrix.</p></div></header>
+  <div class="banner info"><div><b>No AI touches live customers in the MVP.</b> <span class="small">AI diagnosis reaches production in V2, after it is proven on the golden data set and real UAT data.</span></div></div>
+  <div class="kpis"><span class="chip c-bad">${open} open</span><span class="chip c-mut">${D.safety.filter(p => st.tickets[p.id] === "none").length} checked · no alert</span><span class="chip c-ok">${D.safety.filter(p => st.tickets[p.id] === "ack").length} acknowledged</span></div>
+  <section class="panel"><div class="ph"><h2>Hourly checks</h2><span class="small muted">One ticket per issue per account · unacknowledged P1s re-escalate after 1 hour</span></div>
+   <div class="scroll"><table class="tbl"><thead><tr><th>Case</th><th>Customer</th><th>Signal</th><th>Check</th><th>Status</th><th>Routed to</th><th>Why</th><th></th></tr></thead><tbody>${tr}</tbody></table></div></section>`;
+}
+
+/* ---------------- Production: drift V2 ---------------- */
+function spark(d){
+  const vals = d.weeks.concat([d.baseline]), lo = Math.min(...vals), hi = Math.max(...vals), pad = (hi - lo) * 0.15 || 1;
+  const y = v => 62 - ((v - (lo - pad)) / ((hi + pad) - (lo - pad))) * 54, x = i => 8 + i * (284 / 7);
+  const pts = d.weeks.map((v, i) => `${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const area = `8,62 ${pts} ${x(7).toFixed(1)},62`;
+  const col = d.cls.startsWith("Real") ? "var(--bad)" : d.cls.startsWith("Sustained") ? "var(--warn)" : "var(--info)";
+  return `<svg class="spark" viewBox="0 0 300 70" role="img" aria-label="${esc(d.metric)} weekly values against baseline">
+    <line x1="8" x2="292" y1="${y(d.baseline).toFixed(1)}" y2="${y(d.baseline).toFixed(1)}" stroke="var(--muted)" stroke-dasharray="4 3" stroke-width="1"/>
+    <polygon points="${area}" fill="${col}" opacity=".12"/>
+    <polyline points="${pts}" fill="none" stroke="${col}" stroke-width="2"/>
+    <circle cx="${x(7).toFixed(1)}" cy="${y(d.weeks[7]).toFixed(1)}" r="3.5" fill="${col}"/>
+    <text x="292" y="${(y(d.baseline) - 4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--muted)">go-live baseline ${d.baseline}</text></svg>`;
+}
+function viewDrift(){
+  const cards = D.drift.map(d => { const c0 = cust[d.cust], s = st.drift[d.id], real = d.cls.startsWith("Real");
+    const chip = real ? "c-bad" : d.cls.startsWith("Sustained") ? "c-warn" : "c-info";
+    const acts = real ? (s === "pending" ? `<div class="acts pill-row"><button class="btn primary" data-a="dapprove" data-id="${d.id}">Approve ${L("H")}</button><button class="btn" data-a="dreject" data-id="${d.id}">Reject</button></div>`
+      : `<span class="chip ${s === "approved" ? "c-ok" : "c-mut"}">${s === "approved" ? "Approved · sent to existing approval flow · snapshot saved" : "Rejected · added to golden data set"}</span>`) : "";
+    return `<article class="panel dcard"><div class="ph"><h2>${esc(c0.name)}</h2><span class="chip ${chip}">${esc(d.cls)}</span></div>
+      <div class="pb" style="display:flex;flex-direction:column;gap:8px"><div class="small"><span class="mono">${esc(d.metric)}</span> · last 8 weeks (${esc(d.unit)})</div>${spark(d)}
+      <div class="small"><b>Context:</b> ${esc(d.context)}</div><div class="small"><b>${real ? "Proposal" : "Outcome"} ${L(real ? "L" : "J*")}:</b> ${esc(d.action)}</div>${acts}</div></article>`; }).join("");
+  return `
+  <header class="head"><div><div class="eyebrow">Production · Fit monitoring · V2 preview</div><h1>Is each live configuration still right?</h1>
+   <p>Rules compare each metric with the customer's go-live baseline, skipping known peaks. The fast decision layer separates real drift from noise, and the agent investigates real drift and drafts a fix for the CSM to approve.</p></div></header>
+  <div class="banner info"><div><b>V2 preview.</b> <span class="small">Shown to illustrate the roadmap. Not part of the MVP.</span></div></div>
+  <div class="cards">${cards}</div>`;
+}
+
+/* ---------------- Audit ---------------- */
+function viewAudit(){
+  const rows = st.log.map(e => `<div class="row"><span class="mono muted">${esc(e.t)}</span><span>${esc(e.actor)}</span><span>${L(e.layer)}</span><span>${esc(e.text)}</span></div>`).join("");
+  return `<header class="head"><div><div class="eyebrow">Governance</div><h1>Audit trail</h1><p>Every agent output and every human decision, with the layer that produced it. Approved changes keep a snapshot for one-click rollback.</p></div></header>
+   <section class="panel"><div class="pb log">${rows || `<div class="empty">No activity yet.</div>`}</div></section>`;
+}
+
+/* ---------------- Render + events ---------------- */
+const VIEWS = { clar: viewClar, checks: viewChecks, uat: viewUat, safety: viewSafety, drift: viewDrift, audit: viewAudit };
+function counts(){
+  const pend = D.customers.filter(c => c.stage === "Sales").reduce((a, c) => a + pendingOf(c.id), 0);
+  $("#n-clar").textContent = pend || "";
+  $("#n-checks").textContent = D.checks.filter(r => r.result === "Error" && !st.fixed[r.id]).length || "";
+  $("#n-uat").textContent = D.uat.filter(u => st.uat[u.id] === "open" && (u.id !== "UD-12" || st.uat["UD-07"] === "applied")).length || "";
+  $("#n-safety").textContent = D.safety.filter(p => st.tickets[p.id] === "open").length || "";
+  $("#n-audit").textContent = st.log.length;
+}
+function render(){
+  $("#view").innerHTML = VIEWS[st.view]();
+  document.querySelectorAll(".nav").forEach(n => n.setAttribute("aria-current", n.dataset.view === st.view ? "page" : "false"));
+  counts();
+}
+document.addEventListener("click", e => {
+  const nav = e.target.closest(".nav"); if (nav) { st.view = nav.dataset.view; render(); window.scrollTo(0, 0); return; }
+  const b = e.target.closest("[data-a]"); if (!b || b.disabled) return;
+  const a = b.dataset.a, id = b.dataset.id, c = D.clarification.find(x => x.id === id);
+  if (a === "edit") st.edit[id] = true;
+  if (a === "save") { st.clar[id].q = $("#ta-" + id).value; st.edit[id] = false; log("SE", "H", `${id}: edited the drafted question.`); }
+  if (a === "send") { const s = st.clar[id]; if (st.edit[id]) { s.q = $("#ta-" + id).value; st.edit[id] = false; } s.stage = s.stage === "round2" ? "sent2" : "sent"; log("SE", "H", `${id}: approved and sent question to ${cust[c.cust].name}.`); }
+  if (a === "sendall") { (clarBy[st.clarCust] || []).forEach(x => { const s = st.clar[x.id]; if (["drafted","round2"].includes(s.stage)) s.stage = s.stage === "round2" ? "sent2" : "sent"; }); log("SE", "H", `Approved and sent all drafted questions to ${cust[st.clarCust].name}.`); }
+  if (a === "reply") { const s = st.clar[id];
+    if (ROUND2[id] && s.stage === "sent") { s.stage = "round2"; s.q = ROUND2[id].q2; log("Copilot", "L", `${id}: customer answer still vague; drafted a round-2 question.`); }
+    else { s.stage = "resolved"; log("Copilot", "L", `${id}: interpreted customer answer; set ${c.resolved}.`); } }
+  if (a === "pack") { st.pack[st.clarCust] = true; log("Copilot", "L", `Compiled sign-off pack for ${cust[st.clarCust].name}.`); }
+  if (a === "sign") { st.signed[st.clarCust] = true; log("SE", "H", `Recorded customer sign-off for ${cust[st.clarCust].name}. Configuration now built on signed-off values.`); }
+  if (a === "fix") { st.fixed[id] = true; log("SE", "H", `${id}: fixed in sandbox; checks re-run.`); }
+  if (a === "pick") st.uatCase = id;
+  if (a === "apply") { st.uat[id] = "applied"; log("Delivery engineer", "H", `${id}: approved and applied fix in UAT. Snapshot saved; regression re-run on all metrics.`);
+    if (id === "UD-07") log("Copilot", "R", "Regression re-run after UD-07: M9 now passes, but M4 dropped from 97% to 93%. Opened UD-12."); }
+  if (a === "reject") log("Delivery engineer", "H", `${id}: rejected proposal. Case added to golden data set for review.`);
+  if (a === "ask") { st.uat[id] = "awaiting"; log("Delivery engineer", "H", `${id}: sent decision options to customer. Will be logged as a change request.`); }
+  if (a === "retest") { st.uat[id] = "retest"; log("Delivery engineer", "H", `${id}: marked test data for re-run. No configuration change.`); }
+  if (a === "ack") { st.tickets[id] = "ack"; log("CSM / Support", "H", `${id}: acknowledged ticket.`); }
+  if (a === "dapprove") { st.drift[id] = "approved"; log("CSM", "H", `${id}: approved drift fix; sent to existing approval flow.`); }
+  if (a === "dreject") { st.drift[id] = "rejected"; log("CSM", "H", `${id}: rejected drift fix; added to golden data set.`); }
+  render();
+});
+document.addEventListener("change", e => {
+  if (e.target.id === "sel-clar") st.clarCust = e.target.value;
+  if (e.target.id === "sel-checks") st.checkCust = e.target.value;
+  if (e.target.id === "sel-uat") { st.uatCust = e.target.value; st.uatCase = null; }
+  render();
+});
+const hash = (location.hash || "").slice(1); if (VIEWS[hash]) st.view = hash;
+render();
+</script>
+
+</body>
+</html>
